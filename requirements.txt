@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pyautogui
+pywhatkit
+pydantic
+requests
+flask
+# add google-api-python-client for Gmail official API later

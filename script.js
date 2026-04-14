@@ -3,6 +3,32 @@ const userInput = document.getElementById('userInput');
 const sendBtn = document.getElementById('sendBtn');
 const voiceBtn = document.getElementById('voiceBtn');
 
+// Speech Recognition Setup
+const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const recognition = Recognition ? new Recognition() : null;
+if (recognition) {
+    recognition.lang = 'ar-SA';
+    recognition.interimResults = false;
+}
+
+// Voice Synthesis Setup
+const synth = window.speechSynthesis;
+
+function speak(text) {
+    if (!synth) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ar-SA';
+    utterance.rate = 0.9; // Slightly slower for a "softer" feel
+    utterance.pitch = 1.1; // A bit higher for a friendly tone
+    
+    // Choose a premium voice if available
+    const voices = synth.getVoices();
+    const arabicVoice = voices.find(v => v.lang.includes('ar') && v.name.includes('Google')) || voices.find(v => v.lang.includes('ar'));
+    if (arabicVoice) utterance.voice = arabicVoice;
+
+    synth.speak(utterance);
+}
+
 // Helper to set command from quick actions
 window.setCommand = function(cmd) {
     userInput.value = cmd;
@@ -20,6 +46,8 @@ function addMessage(text, isUser = false) {
     
     chatDisplay.appendChild(msgDiv);
     chatDisplay.scrollTop = chatDisplay.scrollHeight;
+
+    if (!isUser) speak(text);
 }
 
 async function handleCommand() {
@@ -58,11 +86,32 @@ userInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') handleCommand();
 });
 
-// Voice Input Simulation
+// Voice Input Logic
+if (recognition) {
+    recognition.onstart = () => {
+        voiceBtn.classList.add('recording');
+    };
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        userInput.value = transcript;
+        handleCommand();
+    };
+
+    recognition.onend = () => {
+        voiceBtn.classList.remove('recording');
+    };
+}
+
 voiceBtn.addEventListener('click', () => {
-    addMessage("جاري الاستماع إليك... قل أمرك الآن.", false);
-    // Here we would implement Web Speech API or custom backend voice recording
+    if (recognition) {
+        recognition.start();
+    } else {
+        alert("عذراً، متصفحك لا يدعم التعرف على الصوت.");
+    }
 });
 
-// Success UI touch
-console.log("Astra AI Interface Initialized");
+// Warm up voices
+window.speechSynthesis.onvoiceschanged = () => {
+    console.log("Voices loaded");
+};
